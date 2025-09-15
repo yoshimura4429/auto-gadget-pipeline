@@ -1,16 +1,33 @@
-name: hello-run
+name: pipeline-run
 on:
   workflow_dispatch:
     inputs:
       brief_url:
-        description: "Optional brief"
+        description: "Optional brief file URL"
         required: false
         default: ""
 jobs:
-  hello:
+  run:
     runs-on: ubuntu-latest
     steps:
-      - name: Say hello
-        run: |
-          echo "Hello from GitHub Actions!"
-          echo "brief_url=${{ inputs.brief_url }}"
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install deps
+        run: pip install -r requirements.txt
+
+      - name: Run pipeline.py
+        env:
+          # inputs を環境変数で Python に渡す
+          BRIEF_URL: ${{ inputs.brief_url }}
+          PYTHONUNBUFFERED: "1"
+        run: python pipeline.py
+
+      - name: Upload artifact (generated article)
+        uses: actions/upload-artifact@v4
+        with:
+          name: article
+          path: dist/article.md
