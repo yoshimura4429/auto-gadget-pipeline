@@ -1,0 +1,16 @@
+name: hello-run
+on:
+  workflow_dispatch:
+    inputs:
+      brief_url:
+        description: "Optional brief"
+        required: false
+        default: ""
+jobs:
+  hello:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Say hello
+        run: |
+          echo "Hello from GitHub Actions!"
+          echo "brief_url=${{ inputs.brief_url }}"
