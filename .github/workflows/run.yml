@@ -1,0 +1,70 @@
+name: Generate Article
+
+on:
+  workflow_dispatch:
+    inputs:
+      category:
+        description: "カテゴリ（活用法 / 速報 / 熱量）"
+        required: true
+        default: "活用法"
+      angle:
+        description: "記事の方向性（任意。例：それでもiPadが欲しい）"
+        required: false
+        default: ""
+      material:
+        description: "素材テキスト（ドラフト本文をここに貼る）"
+        required: true
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install deps
+        run: |
+          pip install -r requirements.txt
+
+      - name: Write material to file
+        run: |
+          mkdir -p inputs
+          cat > inputs/draft.md << 'EOF_MATERIAL'
+          ${{ github.event.inputs.material }}
+          EOF_MATERIAL
+
+      - name: Run pipeline
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_PROJECT: ${{ secrets.OPENAI_PROJECT }}
+          OPENAI_MODEL: ${{ secrets.OPENAI_MODEL }}
+        run: |
+          set -e
+          CATEGORY="${{ github.event.inputs.category }}"
+          ANGLE_INPUT="${{ github.event.inputs.angle }}"
+          EXTRA=""
+          if [ -n "$ANGLE_INPUT" ]; then
+            EXTRA="--angle \"$ANGLE_INPUT\""
+          fi
+          echo "Running: python3 pipeline.py --category \"$CATEGORY\" --source_file inputs/draft.md $EXTRA"
+          eval python3 pipeline.py --category \"$CATEGORY\" --source_file inputs/draft.md $EXTRA
+
+      - name: Upload article artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: article-md
+          path: dist/*.md
+
+      - name: Job Summary
+        run: |
+          echo "### ✅ 記事生成完了" >> $GITHUB_STEP_SUMMARY
+          echo "- カテゴリ: ${{ github.event.inputs.category }}" >> $GITHUB_STEP_SUMMARY
+          if [ -n "${{ github.event.inputs.angle }}" ]; then
+            echo "- 角度: ${{ github.event.inputs.angle }}" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "- 出力: dist ディレクトリ配下。上部 **Artifacts** からDL可" >> $GITHUB_STEP_SUMMARY
