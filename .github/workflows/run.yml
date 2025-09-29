@@ -57,8 +57,8 @@ jobs:
         run: |
           mkdir -p inputs
           cat > inputs/draft.md << 'EOF_MATERIAL'
-　　　　${{ github.event.inputs.material }}
-　　EOF_MATERIAL
+　　　　　${{ github.event.inputs.material }}
+　　　　　EOF_MATERIAL
 
       # ---- 第2段階：本記事生成 ----
       - name: Run pipeline
