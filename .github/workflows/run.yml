@@ -53,7 +53,7 @@ jobs:
 
       # B) keyword が空なら、フォームの素材テキストをファイル化
       - name: Write material to file (when keyword empty)
-        if: ${{ inputs.keyword == '' }}
+        if: ${{ github.event.inputs.keyword == '' }
  　　　　 run: |
     　　　　mkdir -p inputs
     　　　　printf "%s" "${{ github.event.inputs.material }}" > inputs/draft.md
