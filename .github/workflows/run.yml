@@ -1,4 +1,4 @@
-name: Generate Articlename: Generate Article
+name: Generate Article
 
 on:
   workflow_dispatch:
