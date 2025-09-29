@@ -1,5 +1,4 @@
 name: Generate Article
-
 on:
   workflow_dispatch:
     inputs:
@@ -19,11 +18,9 @@ on:
         description: "記事の方向性（例: それでもiPadが欲しい）"
         required: false
         default: ""
-
 jobs:
   run:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -31,9 +28,8 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-
       - name: Install deps
-        run: pip install -r requirements.txt
+         run: pip install -r requirements.txt
       - name: Stage1 - make draft from Reddit (when keyword is given)
         if: ${{ inputs.keyword != '' }}
         env:
@@ -45,16 +41,12 @@ jobs:
           echo "🔎 build draft via Reddit with keyword='${{ inputs.keyword }}'"
           python3 stage1_reddit.py --keyword "${{ inputs.keyword }}"
           test -f inputs/draft.md || (echo "draft.md not generated" && exit 1)
-
-      # B) keyword が空なら、フォームの素材テキストをファイル化
-        - name: Write material to file (when keyword empty)
+      - name: Write material to file (when keyword empty)
         if: ${{ github.event.inputs.keyword == '' }}
         shell: bash
         run: |
           mkdir -p inputs
           printf "%s" "${{ github.event.inputs.material }}" > inputs/draft.md
-
-      # ---- 第2段階：本記事生成 ----
       - name: Run pipeline
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
@@ -70,13 +62,11 @@ jobs:
           fi
           echo "▶️ python3 pipeline.py --category \"$CATEGORY\" --source_file inputs/draft.md $EXTRA"
           eval python3 pipeline.py --category "$CATEGORY" --source_file inputs/draft.md $EXTRA
-
       - name: Upload article artifact
         uses: actions/upload-artifact@v4
         with:
           name: article-md
           path: dist/*.md
-
       - name: Job Summary
         run: |
           echo "### ✅ 生成完了" >> $GITHUB_STEP_SUMMARY
