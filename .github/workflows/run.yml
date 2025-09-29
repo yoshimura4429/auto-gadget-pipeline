@@ -1,4 +1,4 @@
-name: Generate Article
+name: Generate Articlename: Generate Article
 
 on:
   workflow_dispatch:
@@ -7,17 +7,23 @@ on:
         description: "カテゴリ（活用法 / 速報 / 熱量）"
         required: true
         default: "活用法"
-      angle:
-        description: "記事の方向性（任意。例：それでもiPadが欲しい）"
+      keyword:
+        description: "叩き台キーワード（例: iPad 不要）※入れるとRedditから叩き台自動生成"
         required: false
         default: ""
       material:
-        description: "素材テキスト（ドラフト本文をここに貼る）"
-        required: true
+        description: "素材テキスト（keyword未入力のときに使用）"
+        required: false
+        default: ""
+      angle:
+        description: "記事の方向性（例: それでもiPadが欲しい）"
+        required: false
+        default: ""
 
 jobs:
   run:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -31,13 +37,30 @@ jobs:
         run: |
           pip install -r requirements.txt
 
-      - name: Write material to file
+      # ---- 叩き台を用意（A: Reddit / B: 手貼り） ----
+      # A) keyword が入力されたら Reddit から叩き台生成
+      - name: Stage1 - make draft from Reddit (when keyword is given)
+        if: ${{ inputs.keyword != '' }}
+        env:
+          REDDIT_CLIENT_ID: ${{ secrets.REDDIT_CLIENT_ID }}
+          REDDIT_CLIENT_SECRET: ${{ secrets.REDDIT_CLIENT_SECRET }}
+          REDDIT_USER_AGENT: ${{ secrets.REDDIT_USER_AGENT }}
+        run: |
+          mkdir -p inputs
+          echo "🔎 build draft via Reddit with keyword='${{ inputs.keyword }}'"
+          python3 stage1_reddit.py --keyword "${{ inputs.keyword }}"
+          test -f inputs/draft.md || (echo "draft.md not generated" && exit 1)
+
+      # B) keyword が空なら、フォームの素材テキストをファイル化
+      - name: Write material to file (when keyword empty)
+        if: ${{ inputs.keyword == '' }}
         run: |
           mkdir -p inputs
           cat > inputs/draft.md << 'EOF_MATERIAL'
-          ${{ github.event.inputs.material }}
-          EOF_MATERIAL
+${{ github.event.inputs.material }}
+EOF_MATERIAL
 
+      # ---- 第2段階：本記事生成 ----
       - name: Run pipeline
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
@@ -51,8 +74,8 @@ jobs:
           if [ -n "$ANGLE_INPUT" ]; then
             EXTRA="--angle \"$ANGLE_INPUT\""
           fi
-          echo "Running: python3 pipeline.py --category \"$CATEGORY\" --source_file inputs/draft.md $EXTRA"
-          eval python3 pipeline.py --category \"$CATEGORY\" --source_file inputs/draft.md $EXTRA
+          echo "▶️ python3 pipeline.py --category \"$CATEGORY\" --source_file inputs/draft.md $EXTRA"
+          eval python3 pipeline.py --category "$CATEGORY" --source_file inputs/draft.md $EXTRA
 
       - name: Upload article artifact
         uses: actions/upload-artifact@v4
@@ -62,9 +85,12 @@ jobs:
 
       - name: Job Summary
         run: |
-          echo "### ✅ 記事生成完了" >> $GITHUB_STEP_SUMMARY
+          echo "### ✅ 生成完了" >> $GITHUB_STEP_SUMMARY
           echo "- カテゴリ: ${{ github.event.inputs.category }}" >> $GITHUB_STEP_SUMMARY
+          if [ -n "${{ github.event.inputs.keyword }}" ]; then
+            echo "- キーワード: ${{ github.event.inputs.keyword }}" >> $GITHUB_STEP_SUMMARY
+          fi
           if [ -n "${{ github.event.inputs.angle }}" ]; then
             echo "- 角度: ${{ github.event.inputs.angle }}" >> $GITHUB_STEP_SUMMARY
           fi
-          echo "- 出力: dist ディレクトリ配下。上部 **Artifacts** からDL可" >> $GITHUB_STEP_SUMMARY
+          echo "- 出力: dist/ 配下。上部 **Artifacts** からDL可能" >> $GITHUB_STEP_SUMMARY
