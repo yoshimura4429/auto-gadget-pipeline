@@ -27,7 +27,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-        　 python-version: "3.11"
+          python-version: "3.11"
       - name: Install deps
         run: pip install -r requirements.txt
       - name: Stage1 - make draft from Reddit (when keyword is given)
