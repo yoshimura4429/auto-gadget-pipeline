@@ -27,19 +27,19 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+         python-version: "3.11"
       - name: Install deps
         run: pip install -r requirements.txt
       - name: Stage1 - make draft from Reddit (when keyword is given)
-        if: ${{ github.event.inputs.keyword != '' }}
+        if: ${{ inputs.keyword != '' }}
         env:
           REDDIT_CLIENT_ID: ${{ secrets.REDDIT_CLIENT_ID }}
           REDDIT_CLIENT_SECRET: ${{ secrets.REDDIT_CLIENT_SECRET }}
           REDDIT_USER_AGENT: ${{ secrets.REDDIT_USER_AGENT }}
         run: |
           mkdir -p inputs
-          echo "🔎 build draft via Reddit with keyword='${{ github.event.inputs.keyword }}'"
-          python3 stage1_reddit.py --keyword "${{ github.event.inputs.keyword }}"
+          echo "🔎 build draft via Reddit with keyword='${{ inputs.keyword }}'"
+          python3 stage1_reddit.py --keyword "${{ inputs.keyword }}"
           test -f inputs/draft.md || (echo "draft.md not generated" && exit 1)
       - name: Write material to file (when keyword empty)
         if: ${{ github.event.inputs.keyword == '' }}
@@ -54,14 +54,23 @@ jobs:
           OPENAI_MODEL: ${{ secrets.OPENAI_MODEL }}
         run: |
           set -e
-          CATEGORY="${{ github.event.inputs.category }}"
-          ANGLE_INPUT="${{ github.event.inputs.angle }}"
-          EXTRA=""
-          if [ -n "$ANGLE_INPUT" ]; then
-            EXTRA="--angle \"$ANGLE_INPUT\""
+          
+          # 基本の引数を配列として定義
+          args=(
+            --category "${{ github.event.inputs.category }}"
+            --source_file "inputs/draft.md"
+          )
+
+          # angleの入力があれば、引数を配列に追加
+          if [[ -n "${{ github.event.inputs.angle }}" ]]; then
+            args+=(--angle "${{ github.event.inputs.angle }}")
           fi
-          echo "▶️ python3 pipeline.py --category \"$CATEGORY\" --source_file inputs/draft.md $EXTRA"
-          eval python3 pipeline.py --category "$CATEGORY" --source_file inputs/draft.md $EXTRA
+
+          # 実行コマンドを分かりやすく表示
+          echo "▶️ python3 pipeline.py ${args[*]}"
+
+          # 配列変数を展開して安全にコマンドを実行
+          python3 pipeline.py "${args[@]}"
       - name: Upload article artifact
         uses: actions/upload-artifact@v4
         with:
