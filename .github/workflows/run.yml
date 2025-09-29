@@ -38,7 +38,7 @@ jobs:
           pip install -r requirements.txt
 
       # ---- 叩き台を用意（A: Reddit / B: 手貼り） ----
-      # A) keyword が入力されたら Reddit から叩き台生成
+
       - name: Stage1 - make draft from Reddit (when keyword is given)
         if: ${{ inputs.keyword != '' }}
         env:
