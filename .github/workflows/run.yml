@@ -31,15 +31,15 @@ jobs:
       - name: Install deps
         run: pip install -r requirements.txt
       - name: Stage1 - make draft from Reddit (when keyword is given)
-        if: ${{ inputs.keyword != '' }}
+        if: ${{ github.event.inputs.keyword != '' }}
         env:
           REDDIT_CLIENT_ID: ${{ secrets.REDDIT_CLIENT_ID }}
           REDDIT_CLIENT_SECRET: ${{ secrets.REDDIT_CLIENT_SECRET }}
           REDDIT_USER_AGENT: ${{ secrets.REDDIT_USER_AGENT }}
         run: |
           mkdir -p inputs
-          echo "🔎 build draft via Reddit with keyword='${{ inputs.keyword }}'"
-          python3 stage1_reddit.py --keyword "${{ inputs.keyword }}"
+          echo "🔎 build draft via Reddit with keyword='${{ github.event.inputs.keyword }}'"
+          python3 stage1_reddit.py --keyword "${{ github.event.inputs.keyword }}"
           test -f inputs/draft.md || (echo "draft.md not generated" && exit 1)
       - name: Write material to file (when keyword empty)
         if: ${{ github.event.inputs.keyword == '' }}
