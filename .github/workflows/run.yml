@@ -52,11 +52,12 @@ jobs:
           test -f inputs/draft.md || (echo "draft.md not generated" && exit 1)
 
       # B) keyword が空なら、フォームの素材テキストをファイル化
-      - name: Write material to file (when keyword empty)
-        if: ${{ github.event.inputs.keyword == '' }
- 　　　　 run: |
-    　　　　mkdir -p inputs
-    　　　　printf "%s" "${{ github.event.inputs.material }}" > inputs/draft.md
+        - name: Write material to file (when keyword empty)
+        if: ${{ github.event.inputs.keyword == '' }}
+        shell: bash
+        run: |
+          mkdir -p inputs
+          printf "%s" "${{ github.event.inputs.material }}" > inputs/draft.md
 
       # ---- 第2段階：本記事生成 ----
       - name: Run pipeline
